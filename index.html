@@ -2,9 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- Added user-scalable=no and touch-action manipulation for better touch response -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CYBER SCOREBOARD v7.1</title>
+    <title>CYBER SCOREBOARD v7.7</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -17,12 +16,12 @@
             --neon-green: #39ff14;
             --neon-red: #ff073a;
             --neon-gold: #ffd700;
+            --neon-orange: #ff8c00;
             --grid-color: rgba(0, 243, 255, 0.1);
             --safe-top: env(safe-area-inset-top, 20px);
             --safe-bottom: env(safe-area-inset-bottom, 20px);
         }
 
-        /* Global Touch Optimization */
         * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; outline: none; touch-action: manipulation; }
         
         body {
@@ -46,18 +45,33 @@
             position: sticky; top: 0; z-index: 90;
             display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            height: calc(50px + var(--safe-top));
+            height: calc(55px + var(--safe-top));
         }
-        .logo { font-family: 'Orbitron'; font-size: 1rem; font-weight: 900; color: #fff; letter-spacing: 1px; }
-        .header-btns { display: flex; gap: 12px; align-items: center; }
-        .icon-only-btn { background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue); width: 30px; height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; cursor: pointer; }
+        .logo { font-family: 'Orbitron'; font-size: 1.1rem; font-weight: 900; color: #fff; letter-spacing: 1px; }
+        .header-btns { display: flex; gap: 15px; align-items: center; }
         
+        .header-action-btn {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--neon-blue); 
+            color: var(--neon-blue); padding: 8px 15px; border-radius: 4px;
+            font-family: 'Share Tech Mono'; font-size: 0.8rem; cursor: pointer;
+            min-width: 70px; text-align: center; position: relative;
+        }
+        .header-action-btn::after { content: ''; position: absolute; top: -10px; bottom: -10px; left: -10px; right: -10px; }
+        .header-action-btn:active { background: var(--neon-blue); color: #000; }
+        
+        .icon-only-btn { 
+            background: transparent; border: 1px solid var(--neon-blue); 
+            color: var(--neon-blue); width: 36px; height: 36px; 
+            border-radius: 4px; display: flex; align-items: center; justify-content: center; 
+            font-size: 1rem; cursor: pointer; 
+        }
+
         /* --- Action Bar --- */
-        .action-bar { padding: 8px 10px; display: flex; gap: 8px; }
+        .action-bar { padding: 10px 10px; display: flex; gap: 10px; }
         .cyber-btn { 
-            flex: 1; padding: 8px 0; 
+            flex: 1; padding: 10px 0; 
             background: rgba(0,0,0,0.6); border: 1px solid var(--neon-blue); 
-            color: var(--neon-blue); font-family: 'Orbitron'; font-weight: bold; font-size: 0.85rem;
+            color: var(--neon-blue); font-family: 'Orbitron'; font-weight: bold; font-size: 0.9rem;
             cursor: pointer; 
             clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); 
             transition: background 0.1s;
@@ -68,101 +82,152 @@
         .cyber-btn.danger { border-color: var(--neon-red); color: var(--neon-red); }
 
         /* --- Player List --- */
-        .player-list { padding: 0 8px; display: flex; flex-direction: column; gap: 6px; }
+        .player-list { padding: 0 8px; display: flex; flex-direction: column; gap: 8px; }
+        
         .player-card { 
             background: var(--panel-bg); 
             border: 1px solid rgba(255,255,255,0.1); 
-            display: grid; grid-template-columns: 36px 1fr 70px; 
-            gap: 8px; align-items: center; 
-            padding: 6px 8px;
+            display: flex; 
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px;
             position: relative; 
-            min-height: 68px;
-            transition: transform 0.2s ease, background 0.3s;
+            min-height: 75px;
+            transition: background 0.3s;
         }
         .player-card.team-A { border-left: 3px solid var(--neon-blue); background: linear-gradient(90deg, rgba(0,243,255,0.05), transparent); }
         .player-card.team-B { border-left: 3px solid var(--neon-pink); background: linear-gradient(90deg, rgba(255,0,255,0.05), transparent); }
-        .player-card.team-Rest { border-left: 3px solid #444; opacity: 0.75; filter: grayscale(0.9); }
+        .player-card.team-Rest { border-left: 3px solid #444; }
+        
+        .player-card.is-resting { 
+            border-left: 3px solid #444; 
+            background: rgba(10,10,10,0.9); 
+        }
+        .player-card.is-resting .p-left-section, 
+        .player-card.is-resting .p-right-section {
+            opacity: 0.3; filter: grayscale(1);
+        }
+        .player-card.is-resting .score-absolute {
+            opacity: 1 !important; filter: none !important;
+        }
 
-        /* Left Icons */
-        .p-left { display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; }
-        .icon-btn { font-size: 0.9rem; color: #444; padding: 4px; cursor: pointer; }
+        .p-left-section { 
+            display: flex; align-items: center; gap: 8px; 
+            flex: 1; max-width: 42%; height: 100%;
+        }
+
+        .icon-stack { display: flex; flex-direction: column; gap: 6px; width: 30px; align-items: center; }
+        .icon-wrapper { position: relative; width: 100%; text-align: center; }
+        .icon-btn { font-size: 1rem; color: #444; cursor: pointer; }
         .icon-btn.active { color: var(--neon-gold); text-shadow: 0 0 5px var(--neon-gold); }
-        .icon-btn.rival.active { color: var(--neon-red); }
+        .icon-btn.rival.active { color: var(--neon-red); text-shadow: 0 0 5px var(--neon-red); }
+        .icon-btn.rest.active { color: var(--neon-orange); text-shadow: 0 0 5px var(--neon-orange); }
+        
+        .rest-badge {
+            position: absolute; bottom: -5px; right: -5px;
+            font-size: 0.6rem; font-family: 'Orbitron'; font-weight: bold;
+            color: #fff; background: #333; border-radius: 3px; padding: 0 3px;
+            display: block; 
+        }
 
-        /* Center */
-        .p-center { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding-right: 5px; }
-        .p-info-group { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .p-info { display: flex; flex-direction: column; justify-content: center; overflow: hidden; width: 100%; }
         .p-name-input { 
             background: transparent; border: none; color: #ddd; 
-            font-family: 'Share Tech Mono'; font-size: 0.9rem; width: 100%; 
-            padding: 0; margin-bottom: 2px;
+            font-family: 'Share Tech Mono'; font-size: 1rem; width: 100%; 
+            padding: 0; margin-bottom: 2px; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .team-tag { font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .score-container { display: flex; align-items: center; cursor: pointer; position: relative; }
+        .team-tag { font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+
+        /* Score (Absolute Center) */
+        .score-absolute {
+            position: absolute; 
+            left: 50%; top: 50%; transform: translate(-50%, -50%);
+            z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+            width: 80px; height: 100%;
+            cursor: pointer;
+            overflow: visible; /* Allow animation to fly out */
+        }
         .p-score { 
-            font-family: 'Orbitron'; font-size: 1.8rem; font-weight: 900; color: #fff; 
-            min-width: 60px; text-align: right; letter-spacing: -1px;
-            font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; /* Prevent jitter */
+            font-family: 'Orbitron'; font-size: 2rem; font-weight: 900; color: #fff; 
+            text-align: center; letter-spacing: -1px;
+            font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; 
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
         }
         .p-score.positive { color: var(--neon-green); }
         .p-score.negative { color: var(--neon-red); }
-        .p-score.mvp { color: var(--neon-gold); text-shadow: 0 0 10px var(--neon-gold); }
+        .p-score.mvp { color: var(--neon-gold); text-shadow: 0 0 15px var(--neon-gold); }
 
-        /* Right Buttons */
-        .p-right { display: flex; flex-direction: column; gap: 4px; height: 100%; justify-content: center; }
+        /* Buttons */
+        .p-right-section { 
+            display: flex; gap: 6px; height: 100%; align-items: center; 
+            width: 155px; justify-content: flex-end;
+        }
         .win-btn { 
+            flex: 2; 
             background: rgba(0, 243, 255, 0.1); border: 1px solid var(--neon-blue); 
-            color: var(--neon-blue); font-size: 0.8rem; font-weight: bold;
+            color: var(--neon-blue); font-size: 1rem; font-weight: bold;
             display: flex; align-items: center; justify-content: center;
-            height: 32px; border-radius: 2px; cursor: pointer;
+            height: 48px; border-radius: 4px; cursor: pointer;
         }
         .team-B .win-btn { border-color: var(--neon-pink); color: var(--neon-pink); background: rgba(255, 0, 255, 0.1); }
-        .win-btn:active { background: var(--neon-blue); color: #000; }
+        .win-btn:active { background: var(--neon-blue); color: #000; transform: scale(0.98); }
         .team-B .win-btn:active { background: var(--neon-pink); color: #000; }
-
         .foul-btn { 
-            font-size: 0.65rem; color: #888; border: 1px solid #444; 
-            height: 20px; display: flex; align-items: center; justify-content: center;
-            border-radius: 2px; cursor: pointer;
+            flex: 1; 
+            font-size: 0.75rem; color: #888; border: 1px solid #444; 
+            height: 48px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 4px; cursor: pointer; line-height: 1;
         }
         .foul-btn:active { background: var(--neon-gold); color: #000; border-color: var(--neon-gold); }
+        .foul-count { font-size: 0.65rem; margin-top: 2px; opacity: 0.8; }
+        .delete-btn {
+            width: 100%; height: 40px; 
+            border: 1px solid #333; color: #555; background: transparent;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 0.9rem;
+        }
 
         /* --- Footer --- */
         .footer-controls { 
             position: fixed; bottom: 0; left: 0; width: 100%; 
             background: rgba(5, 10, 20, 0.98); 
             border-top: 1px solid #333; 
-            padding: 8px 10px calc(8px + var(--safe-bottom)) 10px;
-            display: grid; grid-template-columns: 1fr 90px; gap: 10px; 
+            padding: 10px 10px calc(10px + var(--safe-bottom)) 10px;
+            display: grid; grid-template-columns: 1fr 120px; gap: 10px; 
             z-index: 150; backdrop-filter: blur(10px);
         }
-        .tier-group { display: flex; background: #000; border: 1px solid #333; border-radius: 4px; height: 40px; }
-        .tier-btn { flex: 1; background: transparent; border: none; color: #666; font-family: 'Share Tech Mono'; font-size: 0.8rem; border-right: 1px solid #222; line-height: 1.1; }
+        .tier-group { display: flex; background: #000; border: 1px solid #333; border-radius: 6px; height: 46px; }
+        .tier-btn { flex: 1; background: transparent; border: none; color: #666; font-family: 'Share Tech Mono'; font-size: 0.75rem; border-right: 1px solid #222; line-height: 1.1; }
         .tier-btn span { font-size: 0.9rem; font-weight: bold; display: block; }
         .tier-btn:last-child { border-right: none; }
         .tier-btn.active { background: rgba(0, 243, 255, 0.15); color: var(--neon-blue); }
         .tier-btn.active-high { background: rgba(255, 42, 42, 0.15); color: var(--neon-red); }
-
-        .extra-control { display: flex; align-items: center; justify-content: space-between; background: #000; border: 1px solid #333; border-radius: 4px; height: 40px; padding: 0; }
-        .extra-btn { 
-            background: #222; color: #fff; border: none; width: 30px; height: 100%; font-size: 1.2rem; cursor: pointer; 
-        }
+        .extra-control { display: flex; align-items: center; justify-content: space-between; background: #000; border: 1px solid #333; border-radius: 6px; height: 46px; padding: 0; }
+        .extra-btn { background: #222; color: #fff; border: none; width: 40px; height: 100%; font-size: 1.4rem; cursor: pointer; }
         .extra-btn:active { background: #444; }
-        .extra-val { font-family: 'Orbitron'; color: var(--neon-gold); font-size: 1rem; flex: 1; text-align: center; }
+        .extra-val { font-family: 'Orbitron'; color: var(--neon-gold); font-size: 1.2rem; flex: 1; text-align: center; font-weight: bold; }
 
-        /* --- Animations --- */
-        /* Rolling number effect handled by JS, this is for the pop-up */
+        /* --- Animations (v7.7 Fixed Offset) --- */
         .float-anim {
-            position: absolute; right: 60px; top: 50%; transform: translateY(-50%);
-            font-size: 2rem; font-family: 'Orbitron'; font-weight: 900; pointer-events: none;
-            animation: floatUpFade 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            position: absolute; 
+            /* Push completely outside the score box to the right */
+            left: 100%; 
+            top: 50%; 
+            margin-left: 10px; /* Gap between score and animation */
+            transform: translateY(-50%);
+            font-size: 1.8rem; font-family: 'Orbitron'; font-weight: 900; pointer-events: none;
+            animation: popHoldFade 2s ease-out forwards;
             z-index: 100; text-shadow: 2px 2px 0px #000;
+            white-space: nowrap;
         }
-        @keyframes floatUpFade {
-            0% { opacity: 0; transform: translateY(-40%) scale(0.5); }
-            30% { opacity: 1; transform: translateY(-80%) scale(1.2); }
-            100% { opacity: 0; transform: translateY(-120%) scale(1); }
+        @keyframes popHoldFade {
+            0% { opacity: 0; transform: translate(0, -50%) scale(0.5); }
+            10% { opacity: 1; transform: translate(0, -50%) scale(1.2); } /* Pop in */
+            60% { opacity: 1; transform: translate(0, -50%) scale(1.2); } /* HOLD */
+            100% { opacity: 0; transform: translate(0, -150%) scale(1); } /* Fade out up */
         }
 
         /* --- Modals --- */
@@ -209,16 +274,40 @@
         .edit-panel { width: 80%; margin: auto; background: #1a1a20; border: 1px solid var(--neon-blue); padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .edit-input { background: #000; color: #fff; font-size: 2rem; text-align: center; border: 1px solid #444; padding: 5px; font-family: 'Orbitron'; width: 100%; }
 
-        /* Tables */
-        .cyber-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; color: #ccc; }
-        .cyber-table th { text-align: left; border-bottom: 1px solid #444; padding: 6px; color: var(--neon-blue); font-size: 0.7rem; }
-        .cyber-table td { border-bottom: 1px solid #222; padding: 8px 6px; }
-        .heatmap-container { display: grid; gap: 1px; margin-top: 10px; overflow-x: auto; }
+        /* Tables & Heatmap & Log */
+        .cyber-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; color: #ccc; }
+        .cyber-table th { text-align: left; border-bottom: 1px solid #444; padding: 8px 6px; color: var(--neon-blue); font-size: 0.75rem; }
+        .cyber-table td { border-bottom: 1px solid #222; padding: 10px 6px; }
+        
+        .heatmap-wrapper { width: 100%; overflow-x: auto; position: relative; margin-top: 10px; }
+        .heatmap-container { display: grid; gap: 1px; min-width: max-content; }
         .heatmap-row { display: flex; }
-        .heatmap-cell { width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; background: #111; border: 1px solid #222; font-size: 0.7rem; color: #666; }
+        .heatmap-cell { 
+            width: 50px; height: 40px; 
+            display: flex; align-items: center; justify-content: center; 
+            background: #111; border: 1px solid #222; 
+            font-size: 0.7rem; color: #666; white-space: nowrap;
+            cursor: pointer;
+        }
+        .heatmap-cell:active { background: #333; }
+        .heatmap-cell:first-child {
+            position: sticky; left: 0; z-index: 10;
+            background: #1a1a20; border-right: 1px solid #444;
+            font-weight: bold; color: var(--neon-blue);
+        }
+        .heatmap-head { background: #0e1520; color: #fff; font-weight: bold; border-bottom: 1px solid #444; }
         .heat-1 { background: rgba(0, 243, 255, 0.1); }
         .heat-2 { background: rgba(0, 243, 255, 0.3); color: #fff; }
         .heat-3 { background: rgba(0, 243, 255, 0.6); color: #fff; font-weight: bold; }
+
+        /* Log Styles */
+        .log-container { 
+            background: #000; border: 1px solid #333; height: 200px; overflow-y: auto; 
+            padding: 5px; margin-top: 10px; font-family: monospace; font-size: 0.75rem;
+        }
+        .log-entry { padding: 4px; border-bottom: 1px solid #111; color: #888; display: flex; gap: 8px; }
+        .log-entry span { color: #fff; }
+        .log-time { color: #555; min-width: 40px; }
 
         #loaderOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 300; display: none; flex-direction: column; align-items: center; justify-content: center; }
     </style>
@@ -244,7 +333,7 @@
     <!-- Edit Modal -->
     <div id="editModal" class="modal-overlay">
         <div class="edit-panel">
-            <div style="text-align:center; color:var(--neon-blue); font-family:'Orbitron'">OVERRIDE</div>
+            <div style="text-align:center; color:var(--neon-blue); font-family:'Orbitron'">OVERRIDE SCORE</div>
             <input type="number" id="manualScoreInput" class="edit-input">
             <div class="confirm-btns">
                 <button class="cyber-btn" style="border-color:#666; color:#999" onclick="closeEditModal()">取消</button>
@@ -262,25 +351,39 @@
             </div>
         </div>
         <div class="modal-content">
+            <!-- Section 1: Rankings -->
             <div style="margin-bottom: 25px;">
                 <div style="color:var(--neon-green); border-left:3px solid var(--neon-green); padding-left:8px; font-size:0.9rem; margin-bottom:10px;">AGENT RANKING</div>
                 <table class="cyber-table">
-                    <thead><tr><th>ID</th><th>Win/Mat</th><th>Rate</th><th>Pts</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Win/Rate</th><th>Pts</th><th>Rest</th></tr></thead>
                     <tbody id="statsBody"></tbody>
                 </table>
             </div>
-            <div>
+            
+            <!-- Section 2: Heatmap -->
+            <div style="margin-bottom: 25px;">
                 <div style="color:var(--neon-green); border-left:3px solid var(--neon-green); padding-left:8px; font-size:0.9rem; margin-bottom:10px;">SYNERGY HEATMAP</div>
-                <div id="heatmapContainer" class="heatmap-container"></div>
+                <div class="heatmap-wrapper">
+                    <div id="heatmapContainer" class="heatmap-container"></div>
+                </div>
             </div>
+
+            <!-- Section 3: Logs -->
+            <div>
+                <div style="color:var(--neon-blue); border-left:3px solid var(--neon-blue); padding-left:8px; font-size:0.9rem; margin-bottom:10px;">SYSTEM LOGS</div>
+                <div id="logContainer" class="log-container">
+                    <!-- Logs go here -->
+                </div>
+            </div>
+
             <button class="mobile-close-btn" onclick="closeStats()">关闭页面 / CLOSE</button>
         </div>
     </div>
 
     <header>
-        <div class="logo">CYBER v7.1</div>
+        <div class="logo">CYBER v7.7</div>
         <div class="header-btns">
-            <button class="cyber-btn" style="font-size:0.7rem; padding:4px 8px; width:auto;" onclick="resetSeason()">RESET</button>
+            <button class="header-action-btn" onclick="resetSeason()">RESET</button>
             <button class="icon-only-btn" onclick="SFX.play('click'); openStats()">
                 <i class="fas fa-chart-pie"></i>
             </button>
@@ -304,7 +407,7 @@
                 <button class="tier-btn" id="tier-bomb" onclick="setTier('bomb')">炸清<br><span>40</span></button>
             </div>
         </div>
-        <div class="control-unit" style="width:90px;">
+        <div class="control-unit" style="width:120px;">
             <div class="extra-control">
                 <button class="extra-btn" onclick="adjustExtra(-1)">-</button>
                 <span class="extra-val" id="extraVal">1</span>
@@ -314,7 +417,7 @@
     </div>
 
     <script>
-        // --- 1. Sound Engine (Low Latency) ---
+        // --- 1. Sound Engine ---
         const SFX = {
             ctx: null,
             init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -348,18 +451,33 @@
         let rivalIds = [];
         let teamHistory = {}; 
         let players = [];
+        let actionLogs = []; 
         let pendingAction = null; 
 
-        // --- 3. Initialization & Defaults ---
+        // --- 3. Initialization ---
         function initDefaultPlayers() {
             if(players.length === 0) {
                 for(let i=1; i<=5; i++) {
-                    players.push({ id: i, name: `Player ${i}`, team: "Rest", score: 0, isLocked: false, wins: 0, matches: 0 });
+                    players.push({ id: i, name: `Player ${i}`, team: "Rest", score: 0, isResting: false, wins: 0, matches: 0, fouls: 0, restCount: 0 });
                 }
+            } else {
+                players.forEach(p => { 
+                    if(typeof p.isResting === 'undefined') p.isResting = false;
+                    if(typeof p.fouls === 'undefined') p.fouls = 0;
+                    if(typeof p.restCount === 'undefined') p.restCount = 0;
+                    delete p.isLocked; 
+                });
             }
         }
 
-        // --- 4. Enhanced Rendering (No-Lag) ---
+        function logAction(msg) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            actionLogs.unshift({ t: timeStr, m: msg });
+            if(actionLogs.length > 50) actionLogs.pop();
+        }
+
+        // --- 4. Render ---
         const listEl = document.getElementById('playerList');
         const extraValEl = document.getElementById('extraVal');
 
@@ -370,142 +488,150 @@
             const currentWinVal = TIER_VALUES[config.currentTier] + config.extraScore;
 
             players.forEach(p => {
-                // 1. Setup Classes
                 let teamClass = `team-${p.team}`;
+                if(p.isResting) teamClass += ' is-resting';
+                
                 let scoreClass = 'p-score';
                 if (p.score > 0) scoreClass += ' positive';
                 if (p.score < 0) scoreClass += ' negative';
                 if (maxScore > 0 && p.score === maxScore) scoreClass += ' mvp';
                 let isRival = rivalIds.includes(p.id);
                 
-                // 2. HTML Generation
                 if(!animationOnly) {
                     let actionsHtml = '';
-                    if(p.team !== 'Rest') {
+                    if(p.team !== 'Rest' && !p.isResting) {
                         actionsHtml = `
                             <div class="win-btn" onclick="requestConfirm('win', '${p.team}')">胜 +${currentWinVal}</div>
-                            <div class="foul-btn" onclick="requestConfirm('foul', ${p.id})">犯 -${config.foulScore}</div>
+                            <div class="foul-btn" onclick="requestConfirm('foul', ${p.id})">
+                                <span>犯规</span>
+                                <span class="foul-count">(${p.fouls})</span>
+                            </div>
                         `;
                     } else {
-                        actionsHtml = `<div class="foul-btn" style="border-color:#333; color:#555" onclick="deletePlayer(${p.id})">删</div>`;
+                        actionsHtml = `<div class="delete-btn" onclick="deletePlayer(${p.id})"><i class="fas fa-trash"></i></div>`;
                     }
 
                     const html = `
                         <div class="player-card ${teamClass}" id="card-${p.id}">
-                            <div class="p-left">
-                                <i class="fas fa-lock icon-btn lock ${p.isLocked ? 'active' : ''}" onclick="toggleLock(${p.id})"></i>
-                                <i class="fas fa-skull icon-btn rival ${isRival ? 'active' : ''}" onclick="toggleRival(${p.id})"></i>
-                            </div>
-                            <div class="p-center">
-                                <div class="p-info-group">
+                            <div class="p-left-section">
+                                <div class="icon-stack">
+                                    <div class="icon-wrapper">
+                                        <i class="fas fa-skull icon-btn rival ${isRival ? 'active' : ''}" onclick="toggleRival(${p.id})"></i>
+                                    </div>
+                                    <div class="icon-wrapper">
+                                        <i class="fas fa-coffee icon-btn rest ${p.isResting ? 'active' : ''}" onclick="toggleRest(${p.id})"></i>
+                                        ${p.restCount > 0 ? `<div class="rest-badge" id="rest-badge-${p.id}">${p.restCount}</div>` : ''}
+                                    </div>
+                                </div>
+                                <div class="p-info">
                                     <input type="text" class="p-name-input" value="${p.name}" onchange="updateName(${p.id}, this.value)">
-                                    <div class="team-tag">${p.team === 'Rest' ? 'REST' : 'TEAM ' + p.team}</div>
-                                </div>
-                                <div class="score-container" onclick="openEditModal(${p.id})">
-                                    ${maxScore > 0 && p.score === maxScore ? '<i class="fas fa-crown" style="color:var(--neon-gold); font-size:0.8rem; margin-right:4px;"></i>' : ''}
-                                    <div class="${scoreClass}" id="score-text-${p.id}">${p.score}</div>
+                                    <div class="team-tag">${p.team === 'Rest' ? (p.isResting ? 'OFFLINE' : 'REST') : 'TEAM ' + p.team}</div>
                                 </div>
                             </div>
-                            <div class="p-right">${actionsHtml}</div>
+
+                            <div class="score-absolute" onclick="openEditModal(${p.id})">
+                                ${maxScore > 0 && p.score === maxScore ? '<i class="fas fa-crown" style="color:var(--neon-gold); font-size:0.7rem; position:absolute; top:-10px;"></i>' : ''}
+                                <div class="${scoreClass}" id="score-text-${p.id}">${p.score}</div>
+                            </div>
+
+                            <div class="p-right-section">${actionsHtml}</div>
                         </div>
                     `;
                     listEl.insertAdjacentHTML('beforeend', html);
                 } else {
-                    // Just update values if structure is kept
+                    // Animation Only Mode
                     const scoreEl = document.getElementById(`score-text-${p.id}`);
-                    const cardEl = document.getElementById(`card-${p.id}`);
-                    if(scoreEl && cardEl) {
-                        // We let animation function handle text content
-                        scoreEl.className = scoreClass; 
-                        // Update MVP icon if needed, simple way: re-render MVP icon part
-                        // For stability in this version, full re-render is safer for structure changes,
-                        // but for pure score updates, we use specific animation function below.
+                    if(scoreEl) scoreEl.className = scoreClass; 
+                    // Also update rest badge instantly if exists
+                    if(p.restCount > 0) {
+                        let badge = document.getElementById(`rest-badge-${p.id}`);
+                        if(!badge) {
+                            // If badge didn't exist but now does, we might need a full render or manual insert, 
+                            // but usually animationOnly is called during score change. 
+                            // For v7.7 rest fix, we force render() on win anyway after delay, 
+                            // but to be safe we rely on the full render logic for structural changes.
+                        } else {
+                            badge.textContent = p.restCount;
+                        }
                     }
                 }
             });
             updateFooterUI();
         }
 
-        // --- 5. Rolling Number Animation ---
         function animateScoreChange(p, newVal, delta) {
             const scoreEl = document.getElementById(`score-text-${p.id}`);
             if(!scoreEl) return;
 
-            // 1. Floating Pop-up (+20)
             const floatEl = document.createElement('div');
             floatEl.className = 'float-anim';
             const displayDelta = Number.isInteger(delta) ? delta : delta.toFixed(1);
             floatEl.textContent = delta > 0 ? `+${displayDelta}` : displayDelta;
             floatEl.style.color = delta > 0 ? 'var(--neon-green)' : 'var(--neon-red)';
             scoreEl.parentNode.appendChild(floatEl);
-            setTimeout(() => floatEl.remove(), 600);
+            
+            setTimeout(() => floatEl.remove(), 2100);
 
-            // 2. Rolling Number Logic
             const startVal = parseInt(scoreEl.textContent, 10) || 0;
             const endVal = newVal;
-            const duration = 500; // ms
+            const duration = 1200;
             let startTime = null;
 
             function step(timestamp) {
                 if (!startTime) startTime = timestamp;
                 const progress = Math.min((timestamp - startTime) / duration, 1);
-                // Ease Out Quart
                 const ease = 1 - Math.pow(1 - progress, 4);
-                
                 let current = startVal + (endVal - startVal) * ease;
                 
-                // Formatting
                 if (Math.abs(endVal % 1) < 0.01) current = Math.round(current);
                 else current = current.toFixed(1);
                 
                 scoreEl.textContent = current;
-
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                } else {
-                    scoreEl.textContent = endVal; // Ensure final consistency
-                }
+                if (progress < 1) window.requestAnimationFrame(step);
+                else scoreEl.textContent = endVal;
             }
             window.requestAnimationFrame(step);
         }
 
-        // --- 6. Core Logic (Sync Update) ---
+        // --- Logic ---
         function handleWin(winningTeam) {
             if(winningTeam === 'Rest') return;
             SFX.play('win');
             
-            const losingTeam = winningTeam === 'A' ? 'B' : 'A';
             const val = TIER_VALUES[config.currentTier] + config.extraScore;
+            const losingTeam = winningTeam === 'A' ? 'B' : 'A';
 
-            // Update Stats
-            players.forEach(p => {
-                if (p.team === winningTeam || p.team === losingTeam) {
-                    p.matches = (p.matches || 0) + 1;
-                    if (p.team === winningTeam) p.wins = (p.wins || 0) + 1;
-                }
-            });
-            recordPairs(players.filter(p => p.team === 'A'));
-            recordPairs(players.filter(p => p.team === 'B'));
+            // Log names
+            const winnerNames = players.filter(p => p.team === winningTeam).map(p => p.name).join(', ');
+            logAction(`${winnerNames} 胜 (+${val})`);
 
-            // Update Scores (IMMEDIATELY)
             players.forEach(p => {
                 if (p.team === winningTeam) {
+                    p.matches = (p.matches || 0) + 1;
+                    p.wins = (p.wins || 0) + 1;
                     p.score += val;
                     animateScoreChange(p, p.score, val);
                 } else if (p.team === losingTeam) {
+                    p.matches = (p.matches || 0) + 1;
                     p.score -= val;
                     animateScoreChange(p, p.score, -val);
+                } else {
+                    // v7.7: Strict Rest Logic - Everyone not in A or B gets +1
+                    p.restCount = (p.restCount || 0) + 1;
                 }
             });
             
-            // Clean score precision
+            recordPairs(players.filter(p => p.team === 'A'));
+            recordPairs(players.filter(p => p.team === 'B'));
+            
             players.forEach(p => { if(Math.abs(p.score % 1) < 0.01) p.score = Math.round(p.score); });
-
             saveData();
-            // We do NOT call full render() here to preserve animation, 
-            // we rely on animateScoreChange to update the text.
-            // We only call render to update classes (colors, MVP) after delay
-            setTimeout(() => render(true), 600); 
+            
+            // Delay full re-render to allow animation to start, but user needs to see Rest updates soon.
+            // Render(true) updates scores, but not badges structurally. 
+            // To ensure badges appear, we do a full render slightly later, OR force it now.
+            // For smooth animation, we wait.
+            setTimeout(() => render(), 1300); 
         }
 
         function handleFoul(pid) {
@@ -514,14 +640,15 @@
             SFX.play('alert');
             
             const penalty = config.foulScore;
+            logAction(`${p.name} 犯规 (-${penalty})`);
+
+            p.fouls = (p.fouls || 0) + 1;
             const opponentTeam = p.team === 'A' ? 'B' : 'A';
             const opponents = players.filter(op => op.team === opponentTeam);
 
-            // Update Fouler
             p.score -= penalty;
             animateScoreChange(p, p.score, -penalty);
 
-            // Update Opponents
             if(opponents.length > 0) {
                 const bonus = penalty / opponents.length;
                 opponents.forEach(op => {
@@ -529,75 +656,69 @@
                     animateScoreChange(op, op.score, bonus);
                 });
             }
-
              players.forEach(p => { if(Math.abs(p.score % 1) < 0.01) p.score = Math.round(p.score); });
              saveData();
-             setTimeout(() => render(true), 600);
+             setTimeout(() => render(true), 100);
         }
 
-        // --- 7. Randomizer Logic ---
         function triggerRandomize() {
             SFX.play('click'); 
             const loader = document.getElementById('loaderOverlay');
             loader.style.display = 'flex';
-            
-            // Force small delay to allow UI to show loader
             setTimeout(() => { 
                 executeRandomize(); 
                 loader.style.display = 'none'; 
-                render(); // Full re-render for structure change
+                render(); 
                 saveData(); 
             }, 400);
         }
 
         function executeRandomize() {
-            let activePool = players.filter(p => !p.isLocked);
-            if(activePool.length < 2) return;
+            let activePool = players.filter(p => !p.isResting);
+            if(activePool.length < 2) return; 
             
             // Shuffle
             for (let i = activePool.length - 1; i > 0; i--) { 
                 const j = Math.floor(Math.random() * (i + 1)); 
                 [activePool[i], activePool[j]] = [activePool[j], activePool[i]]; 
             }
-            
-            // Rival Check
-            if (rivalIds.length === 2) {
-                const p1 = activePool.find(p=>p.id===rivalIds[0]);
-                const p2 = activePool.find(p=>p.id===rivalIds[1]);
-                
-                if(p1 && p2) {
-                     // Simple slot assignments: 0,1 -> Team A; 2,3 -> Team B; rest -> Rest
-                     const idx1 = activePool.indexOf(p1); 
-                     const idx2 = activePool.indexOf(p2);
-                     
-                     const getTeam = (idx) => idx < 2 ? 'A' : (idx < 4 ? 'B' : 'Rest');
-                     const t1 = getTeam(idx1);
-                     const t2 = getTeam(idx2);
 
-                     // If they ended up on same active team
-                     if(t1 !== 'Rest' && t1 === t2) {
-                         // Swap p2 with a member of the opposing team
-                         const targetIdx = t1 === 'A' ? 2 : 0; // Swap with first member of other team
-                         // Safety check
-                         if(activePool[targetIdx]) {
-                             // Perform swap in array
-                             activePool[idx2] = activePool[targetIdx];
-                             activePool[targetIdx] = p2;
+            players.forEach(p => { if(!p.isResting) p.team = 'Rest'; });
+
+            if(activePool.length === 2) {
+                const p1 = players.find(x => x.id === activePool[0].id);
+                const p2 = players.find(x => x.id === activePool[1].id);
+                p1.team = 'A';
+                p2.team = 'B';
+            } else {
+                if (rivalIds.length === 2) {
+                    const p1 = activePool.find(p=>p.id===rivalIds[0]);
+                    const p2 = activePool.find(p=>p.id===rivalIds[1]);
+                    if(p1 && p2) {
+                         const idx1 = activePool.indexOf(p1); 
+                         const idx2 = activePool.indexOf(p2);
+                         const getTeam = (idx) => idx < 2 ? 'A' : (idx < 4 ? 'B' : 'Rest');
+                         const t1 = getTeam(idx1);
+                         const t2 = getTeam(idx2);
+                         if(t1 !== 'Rest' && t1 === t2) {
+                             const targetIdx = t1 === 'A' ? 2 : 0;
+                             if(activePool[targetIdx]) {
+                                 activePool[idx2] = activePool[targetIdx];
+                                 activePool[targetIdx] = p2;
+                             }
                          }
-                     }
+                    }
                 }
+                
+                activePool.forEach((p, i) => {
+                    const originalP = players.find(x => x.id === p.id);
+                    if(i < 2) originalP.team = 'A'; 
+                    else if(i < 4) originalP.team = 'B';
+                });
             }
-            
-            // Assign Teams
-            players.forEach(p => { if(!p.isLocked) p.team = 'Rest'; });
-            activePool.forEach((p, i) => {
-                const originalP = players.find(x => x.id === p.id);
-                if(i < 2) originalP.team = 'A'; 
-                else if(i < 4) originalP.team = 'B';
-            });
         }
 
-        // --- 8. Action Handling & Modals ---
+        // --- Actions ---
         function requestConfirm(type, arg) {
             SFX.play('alert');
             pendingAction = { type, arg };
@@ -605,9 +726,7 @@
             const panel = document.getElementById('confirmPanel');
             const detail = document.getElementById('confirmDetail');
             const execBtn = document.getElementById('confirmExecBtn');
-
             modal.style.display = 'flex';
-            
             if (type === 'win') {
                 const val = TIER_VALUES[config.currentTier] + config.extraScore;
                 panel.className = 'confirm-panel c-win';
@@ -631,25 +750,64 @@
             if (type === 'foul') handleFoul(arg);
         }
 
-        // --- 9. Helper Functions ---
         let currentEditId = null;
         function openEditModal(id) { currentEditId = id; document.getElementById('manualScoreInput').value = players.find(p=>p.id===id).score; document.getElementById('editModal').style.display = 'flex'; }
         function closeEditModal() { document.getElementById('editModal').style.display = 'none'; currentEditId = null; }
-        function saveManualScore() { const val = parseFloat(document.getElementById('manualScoreInput').value); if(currentEditId && !isNaN(val)) { players.find(p=>p.id===currentEditId).score = val; render(); saveData(); } closeEditModal(); }
+        function saveManualScore() { 
+            const val = parseFloat(document.getElementById('manualScoreInput').value); 
+            if(currentEditId && !isNaN(val)) { 
+                const p = players.find(p=>p.id===currentEditId);
+                logAction(`修正 ${p.name} 分数: ${p.score} -> ${val}`);
+                p.score = val; 
+                render(); saveData(); 
+            } 
+            closeEditModal(); 
+        }
         
         function updateFooterUI() {
             extraValEl.textContent = config.extraScore > 0 ? `+${config.extraScore}` : config.extraScore;
             ['base', 'run', 'bomb'].forEach(t => { document.getElementById(`tier-${t}`).className = `tier-btn ${config.currentTier === t ? (t==='bomb'?'active-high':'active') : ''}`; });
         }
-        function setTier(t) { SFX.play('click'); config.currentTier = t; updateFooterUI(); saveData(); }
-        function adjustExtra(v) { SFX.play('click'); config.extraScore += v; updateFooterUI(); saveData(); } // Only update footer, no full render needed
         
-        function toggleLock(id) { SFX.play('click'); const p = players.find(p=>p.id===id); p.isLocked = !p.isLocked; if(p.isLocked)p.team='Rest'; render(); saveData(); }
+        // v7.7: Trigger full render to update button text immediately
+        function setTier(t) { 
+            SFX.play('click'); 
+            config.currentTier = t; 
+            saveData(); 
+            render(); 
+        }
+        function adjustExtra(v) { 
+            SFX.play('click'); 
+            config.extraScore += v; 
+            saveData(); 
+            render(); 
+        }
+        
+        function toggleRest(id) {
+            SFX.play('click');
+            const p = players.find(p=>p.id===id);
+            p.isResting = !p.isResting;
+            if(p.isResting) p.team = 'Rest';
+            render(); saveData();
+        }
+
         function toggleRival(id) { SFX.play('click'); if(rivalIds.includes(id)) rivalIds=rivalIds.filter(i=>i!==id); else {if(rivalIds.length>=2)rivalIds.shift(); rivalIds.push(id);} render(); saveData(); }
         function updateName(id, val) { players.find(p=>p.id===id).name = val; saveData(); }
-        function addPlayer() { players.push({ id: Date.now(), name: `P${players.length+1}`, team: "Rest", score: 0, isLocked: false, wins: 0, matches: 0 }); render(); saveData(); }
+        function addPlayer() { 
+            players.push({ id: Date.now(), name: `P${players.length+1}`, team: "Rest", score: 0, isResting: false, wins: 0, matches: 0, fouls: 0, restCount: 0 }); 
+            render(); saveData(); 
+        }
         function deletePlayer(id) { if(confirm("删除该玩家?")) { players = players.filter(p=>p.id!==id); rivalIds=rivalIds.filter(i=>i!==id); render(); saveData(); } }
-        function resetSeason() { if(confirm("确定重置赛季所有数据?")) { players.forEach(p => { p.score=0; p.team='Rest'; p.wins=0; p.matches=0; }); teamHistory={}; render(); saveData(); } }
+        
+        function resetSeason() { 
+            if(confirm("确定重置赛季所有数据?")) { 
+                players.forEach(p => { 
+                    p.score=0; p.team='Rest'; p.wins=0; p.matches=0; 
+                    p.fouls=0; p.restCount=0;
+                }); 
+                teamHistory={}; actionLogs=[]; render(); saveData(); 
+            } 
+        }
 
         function recordPairs(teamArr) {
             if(teamArr.length < 2) return;
@@ -661,40 +819,51 @@
             }
         }
 
-        // Stats Logic
+        function showHeatmapDetail(n1, n2, count) { if(count) alert(`${n1} & ${n2}\n累计组队: ${count} 次`); }
+
         function openStats() {
             document.getElementById('statsModal').style.display = 'flex';
             const tbody = document.getElementById('statsBody');
             tbody.innerHTML = '';
+            
             [...players].sort((a,b) => (b.matches?b.wins/b.matches:0) - (a.matches?a.wins/a.matches:0)).forEach(p => {
                 const rate = p.matches > 0 ? Math.round((p.wins / p.matches) * 100) : 0;
-                const color = rate >= 60 ? '#ffd700' : (rate >= 50 ? '#39ff14' : '#888');
-                tbody.insertAdjacentHTML('beforeend', `<tr><td>${p.name.substring(0,6)}</td><td>${p.wins}/${p.matches}</td><td style="color:${color}">${rate}%</td><td>${p.score}</td></tr>`);
+                const winStr = `${p.wins}/${p.matches} <span style="color:#888; font-size:0.7em">(${rate}%)</span>`;
+                tbody.insertAdjacentHTML('beforeend', `<tr><td>${p.name.substring(0,6)}</td><td>${winStr}</td><td>${p.score}</td><td style="color:var(--neon-orange)">${p.restCount}</td></tr>`);
             });
             
             const container = document.getElementById('heatmapContainer');
             container.innerHTML = '';
-            players.forEach((p1, i) => {
-                let row = `<div class="heatmap-row"><div class="heatmap-cell" style="color:#fff; border:none; width:20px;">${i+1}</div>`;
-                players.forEach((p2, j) => {
-                    if(i===j) row+=`<div class="heatmap-cell" style="background:#000"></div>`;
+            let headRow = `<div class="heatmap-row"><div class="heatmap-cell heatmap-head" style="position:sticky; left:0; z-index:20;">AGNT</div>`;
+            players.forEach(p => { headRow += `<div class="heatmap-cell heatmap-head">${p.name.substring(0,3).toUpperCase()}</div>`; });
+            headRow += '</div>';
+            container.insertAdjacentHTML('beforeend', headRow);
+            players.forEach((p1) => {
+                let row = `<div class="heatmap-row"><div class="heatmap-cell">${p1.name.substring(0,3).toUpperCase()}</div>`;
+                players.forEach((p2) => {
+                    if(p1.id===p2.id) { row+=`<div class="heatmap-cell" style="background:#000"></div>`; } 
                     else {
                         const key = p1.id < p2.id ? `${p1.id}-${p2.id}` : `${p2.id}-${p1.id}`;
                         const c = teamHistory[key]||0;
-                        row+=`<div class="heatmap-cell ${c>5?'heat-3':(c>2?'heat-2':(c>0?'heat-1':''))}">${c||'-'}</div>`;
+                        row+=`<div class="heatmap-cell ${c>5?'heat-3':(c>2?'heat-2':(c>0?'heat-1':''))}" onclick="showHeatmapDetail('${p1.name}', '${p2.name}', ${c})">${c||'-'}</div>`;
                     }
                 });
                 row+='</div>';
                 container.insertAdjacentHTML('beforeend', row);
             });
+
+            const logDiv = document.getElementById('logContainer');
+            logDiv.innerHTML = '';
+            actionLogs.forEach(log => {
+                logDiv.insertAdjacentHTML('beforeend', `<div class="log-entry"><span class="log-time">${log.t}</span> <span>${log.m}</span></div>`);
+            });
         }
         function closeStats() { document.getElementById('statsModal').style.display = 'none'; }
 
-        // Persistence
-        function saveData() { localStorage.setItem('cv7_1_data', JSON.stringify({p:players, c:config, r:rivalIds, h:teamHistory})); }
+        function saveData() { localStorage.setItem('cv7_7_data', JSON.stringify({p:players, c:config, r:rivalIds, h:teamHistory, l:actionLogs})); }
         function loadData() {
-            const d = JSON.parse(localStorage.getItem('cv7_1_data'));
-            if(d) { players=d.p; config=d.c; rivalIds=d.r; teamHistory=d.h; }
+            const d = JSON.parse(localStorage.getItem('cv7_7_data'));
+            if(d) { players=d.p; config=d.c; rivalIds=d.r; teamHistory=d.h; actionLogs=d.l||[]; initDefaultPlayers(); } 
             else { initDefaultPlayers(); }
         }
 
