@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CYBER SCOREBOARD v8.0</title>
+    <title>CYBER SCOREBOARD v9.0 [AUTO-SYNC]</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- 引入 PeerJS 和 QRCodeJS -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style>
         :root {
             --bg-dark: #050a14;
@@ -17,11 +22,9 @@
             --neon-red: #ff073a;
             --neon-gold: #ffd700;
             --neon-orange: #ff8c00;
-            --grid-color: rgba(0, 243, 255, 0.15); /* Increased visibility for PC */
+            --grid-color: rgba(0, 243, 255, 0.15);
             --safe-top: env(safe-area-inset-top, 20px);
             --safe-bottom: env(safe-area-inset-bottom, 20px);
-
-            /* Dynamic Color Theme Variables (Default: Tactical) */
             --score-pos: var(--neon-blue);
             --score-neg: #d68a00; 
         }
@@ -44,8 +47,47 @@
             min-height: 100vh;
         }
 
+        /* --- Client Mode CSS (Hidden Controls) --- */
+        body.is-client .footer-controls,
+        body.is-client .action-bar,
+        body.is-client .header-action-btn,
+        body.is-client .win-btn,
+        body.is-client .foul-btn,
+        body.is-client .delete-btn,
+        body.is-client .icon-btn,
+        body.is-client .settings-btn-hook, 
+        body.is-client .reset-btn-hook {
+            display: none !important;
+            pointer-events: none;
+        }
+
+        body.is-client .player-card {
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        body.is-client .p-right-section { display: none; }
+        body.is-client .p-left-section { max-width: 60%; }
+        body.is-client .score-absolute { 
+            position: relative; left: auto; top: auto; transform: none; 
+            width: auto; margin-left: auto;
+        }
+        body.is-client .p-score { font-size: 2.5rem; }
+        body.is-client header { justify-content: center; }
+        body.is-client .header-btns { display: none; }
+        body.is-client .client-indicator { display: block; }
+        
+        .client-indicator {
+            display: none;
+            position: fixed; bottom: 20px; right: 20px;
+            background: rgba(0,0,0,0.8); border: 1px solid var(--neon-green);
+            color: var(--neon-green); padding: 5px 10px; border-radius: 4px;
+            font-size: 0.8rem; z-index: 1000; pointer-events: none;
+            animation: pulseSync 2s infinite;
+        }
+        @keyframes pulseSync { 0%{opacity:0.5} 50%{opacity:1} 100%{opacity:0.5} }
+
         /* --- Visual FX Layers --- */
-        /* Fixed Background Grid - Solves PC visibility issue */
         .cyber-bg {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-image: 
@@ -67,7 +109,7 @@
             background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.2));
             background-size: 100% 2px;
             pointer-events: none; z-index: 999;
-            opacity: 1; /* Increased from 0.03 for better effect */
+            opacity: 1;
         }
 
         /* --- Header --- */
@@ -98,6 +140,7 @@
             font-size: 1rem; cursor: pointer; 
         }
         .icon-only-btn:active { background: var(--neon-blue); color: #000; }
+        .icon-only-btn.sync-active { border-color: var(--neon-green); color: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
 
         /* --- Action Bar --- */
         .action-bar { padding: 10px 10px; display: flex; gap: 10px; }
@@ -173,7 +216,6 @@
         }
         .team-tag { font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
 
-        /* Score (Absolute Center) */
         .score-absolute {
             position: absolute; 
             left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -201,7 +243,6 @@
         .p-score.negative { color: var(--score-neg); }
         .p-score.mvp { color: var(--neon-gold); text-shadow: 0 0 15px var(--neon-gold); }
 
-        /* Buttons */
         .p-right-section { 
             display: flex; gap: 6px; height: 100%; align-items: center; 
             width: 155px; justify-content: flex-end;
@@ -258,17 +299,12 @@
         /* --- Animations --- */
         .float-anim {
             position: absolute; 
-            right: 100%; /* LEFT side of score */
-            top: 50%; 
-            margin-right: 15px; 
-            transform: translateY(-50%);
+            right: 100%; top: 50%; margin-right: 15px; transform: translateY(-50%);
             font-size: 2rem; font-family: 'Orbitron'; font-weight: 900; pointer-events: none;
             animation: critPopAnim 1.5s ease-out forwards; 
-            z-index: 100; 
-            white-space: nowrap;
+            z-index: 100; white-space: nowrap;
             text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
-
         @keyframes critPopAnim {
             0% { opacity: 0; transform: translate(0, -50%) scale(0.2); }
             15% { opacity: 1; transform: translate(0, -50%) scale(1.5); }
@@ -292,11 +328,10 @@
         }
         .modal-head-title { font-family: 'Orbitron'; font-size: 1.2rem; color: #fff; }
         
-        #statsModal .modal-content, #settingsModal .modal-content {
+        #statsModal .modal-content, #settingsModal .modal-content, #syncModal .modal-content {
             flex: 1; overflow-y: auto; padding: 15px; padding-bottom: calc(30px + var(--safe-bottom));
         }
 
-        /* Unified Confirmation Modal */
         .confirm-panel { 
             width: 90%; max-width: 320px; 
             background: #0a0a0e; border: 2px solid #fff; 
@@ -306,30 +341,25 @@
             animation: modalPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         @keyframes modalPop { 0%{transform:scale(0.8);opacity:0;} 100%{transform:scale(1);opacity:1;} }
-
         .confirm-panel.c-win { border-color: var(--neon-blue); }
         .confirm-panel.c-foul { border-color: var(--neon-red); }
-        .confirm-panel.c-warn { border-color: var(--neon-red); } /* For Reset/Delete */
-
+        .confirm-panel.c-warn { border-color: var(--neon-red); }
         .confirm-title { font-size:0.8rem; color:#888; letter-spacing:2px; text-transform:uppercase; }
         .confirm-detail { font-size: 1.4rem; font-weight: bold; color: #fff; word-wrap: break-word;}
         .c-win .confirm-detail { color: var(--neon-blue); }
         .c-foul .confirm-detail { color: var(--neon-red); }
         .c-warn .confirm-detail { color: var(--neon-red); }
-
         .confirm-btns { display: flex; gap: 10px; }
-
         .edit-panel { width: 80%; margin: auto; background: #1a1a20; border: 1px solid var(--neon-blue); padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .edit-input { background: #000; color: #fff; font-size: 2rem; text-align: center; border: 1px solid #444; padding: 5px; font-family: 'Orbitron'; width: 100%; }
-        .text-input { font-family: 'Share Tech Mono'; font-size: 1rem; text-align: left; } /* For Text Input */
-        
+        .text-input { font-family: 'Share Tech Mono'; font-size: 1rem; text-align: left; }
         .settings-row { margin-bottom: 20px; }
         .settings-label { color: #888; margin-bottom: 5px; font-size: 0.9rem; }
-
         .cyber-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; color: #ccc; }
         .cyber-table th { text-align: left; border-bottom: 1px solid #444; padding: 8px 6px; color: var(--neon-blue); font-size: 0.75rem; }
         .cyber-table td { border-bottom: 1px solid #222; padding: 10px 6px; }
         
+        /* Heatmap & Logs */
         .heatmap-wrapper { width: 100%; overflow-x: auto; position: relative; margin-top: 10px; }
         .heatmap-container { display: grid; gap: 1px; min-width: max-content; }
         .heatmap-row { display: flex; }
@@ -337,45 +367,36 @@
             width: 50px; height: 40px; 
             display: flex; align-items: center; justify-content: center; 
             background: #111; border: 1px solid #222; 
-            font-size: 0.7rem; color: #666; white-space: nowrap;
-            cursor: pointer;
+            font-size: 0.7rem; color: #666; white-space: nowrap; cursor: pointer;
         }
         .heatmap-cell:active { background: #333; }
-        .heatmap-cell:first-child {
-            position: sticky; left: 0; z-index: 10;
-            background: #1a1a20; border-right: 1px solid #444;
-            font-weight: bold; color: var(--neon-blue);
-        }
+        .heatmap-cell:first-child { position: sticky; left: 0; z-index: 10; background: #1a1a20; border-right: 1px solid #444; font-weight: bold; color: var(--neon-blue); }
         .heatmap-head { background: #0e1520; color: #fff; font-weight: bold; border-bottom: 1px solid #444; }
         .heat-1 { background: rgba(0, 243, 255, 0.1); }
         .heat-2 { background: rgba(0, 243, 255, 0.3); color: #fff; }
         .heat-3 { background: rgba(0, 243, 255, 0.6); color: #fff; font-weight: bold; }
-
-        .log-container { 
-            background: #000; border: 1px solid #333; height: 200px; overflow-y: auto; 
-            padding: 5px; margin-top: 10px; font-family: monospace; font-size: 0.75rem;
-        }
+        .log-container { background: #000; border: 1px solid #333; height: 200px; overflow-y: auto; padding: 5px; margin-top: 10px; font-family: monospace; font-size: 0.75rem; }
         .log-entry { padding: 4px; border-bottom: 1px solid #111; color: #888; display: flex; gap: 8px; }
         .log-entry span { color: #fff; }
         .log-time { color: #555; min-width: 40px; }
 
-        /* --- Loading Overlay with Glitch Text --- */
+        /* Sync Modal Specifics */
+        .sync-option { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+        .sync-option h3 { margin: 0 0 10px 0; color: var(--neon-gold); font-family: 'Orbitron'; font-size: 1rem; }
+        .sync-id-display { font-size: 2rem; font-family: 'Orbitron'; color: var(--neon-blue); text-align: center; margin: 10px 0; letter-spacing: 5px; border: 1px dashed #444; padding: 10px; background: #000; }
+        #qrCodeContainer { background: #fff; padding: 10px; display: inline-block; margin-top: 10px; border-radius: 4px; }
+        #qrCodeContainer img { margin: 0 auto; display: block; }
+
+        /* Loader */
         #loaderOverlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.92); z-index: 300; 
             display: none; flex-direction: column; align-items: center; justify-content: center; 
         }
-        .glitch-text {
-            font-family: 'Orbitron'; font-size: 1.8rem; color: var(--neon-green);
-            position: relative;
-        }
-        .glitch-text::before, .glitch-text::after {
-            content: attr(data-text);
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        }
+        .glitch-text { font-family: 'Orbitron'; font-size: 1.8rem; color: var(--neon-green); position: relative; }
+        .glitch-text::before, .glitch-text::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         .glitch-text::before { left: 2px; text-shadow: -1px 0 #ff00c1; clip: rect(44px, 450px, 56px, 0); animation: glitchAnim 2s infinite linear alternate-reverse; }
         .glitch-text::after { left: -2px; text-shadow: -1px 0 #00fff9; clip: rect(44px, 450px, 56px, 0); animation: glitchAnim 2s infinite linear alternate-reverse; }
-        
         @keyframes glitchAnim {
             0% { clip: rect(10px, 9999px, 30px, 0); }
             20% { clip: rect(80px, 9999px, 100px, 0); }
@@ -391,12 +412,13 @@
     <!-- Visual FX Layer -->
     <div class="cyber-bg"></div>
     <div class="scanlines"></div>
-    
+    <div class="client-indicator"><i class="fas fa-satellite-dish"></i> LIVE SYNC</div>
+
     <div id="loaderOverlay">
-        <div class="glitch-text" data-text="RE-GROUPING...">RE-GROUPING...</div>
+        <div class="glitch-text" id="loaderText" data-text="PROCESSING...">PROCESSING...</div>
     </div>
 
-    <!-- Unified Generic Confirm Modal -->
+    <!-- Confirm Modal -->
     <div id="confirmModal" class="modal-overlay" style="z-index: 250;">
         <div id="confirmPanel" class="confirm-panel">
             <div id="confirmTitle" class="confirm-title">CONFIRM ACTION</div>
@@ -450,6 +472,39 @@
         </div>
     </div>
 
+    <!-- NEW: Sync Modal -->
+    <div id="syncModal" class="modal-overlay">
+        <div class="modal-head-bar">
+            <div class="modal-head-title"><i class="fas fa-wifi"></i> SYNC CENTER</div>
+            <div onclick="closeSync()" style="padding:10px; cursor:pointer; color:var(--neon-red);"><i class="fas fa-times"></i></div>
+        </div>
+        <div class="modal-content" style="text-align:center;">
+            
+            <!-- Host Section -->
+            <div class="sync-option" id="hostSection">
+                <h3><i class="fas fa-server"></i> 主机模式 (HOST)</h3>
+                <p style="color:#888; font-size:0.8rem;">PC端点击此按钮生成二维码</p>
+                <button id="btnCreateRoom" class="cyber-btn" onclick="SyncEngine.hostGame()">创建房间 / CREATE</button>
+                <div id="hostDisplay" style="display:none; margin-top:15px; animation: modalPop 0.5s;">
+                    <div style="font-size:0.8rem; color:#888;">ROOM CODE</div>
+                    <div id="myRoomId" class="sync-id-display">----</div>
+                    <div id="qrCodeContainer"></div>
+                    <div style="margin-top:10px; font-size:0.8rem; color:var(--neon-green);">使用手机扫码（确保手机能访问此网址）</div>
+                </div>
+            </div>
+
+            <!-- Client Section -->
+            <div class="sync-option" id="clientSection">
+                <h3><i class="fas fa-mobile-alt"></i> 观众模式 (CLIENT)</h3>
+                <p style="color:#888; font-size:0.8rem;">若未自动连接，请手动输入代码</p>
+                <input type="text" id="joinInput" class="edit-input" placeholder="CODE" style="margin-bottom:10px; text-transform:uppercase;">
+                <button class="cyber-btn random" onclick="SyncEngine.joinGame()">加入同步 / JOIN</button>
+            </div>
+
+            <div id="syncStatus" style="color:var(--neon-blue); margin-top:20px; font-family:'Share Tech Mono';"></div>
+        </div>
+    </div>
+
     <!-- Stats Modal -->
     <div id="statsModal" class="modal-overlay">
         <div class="modal-head-bar">
@@ -457,7 +512,6 @@
             <div onclick="closeStats()" style="padding:10px; cursor:pointer; color:var(--neon-red);"><i class="fas fa-times"></i></div>
         </div>
         <div class="modal-content">
-            <!-- Section 1: Rankings -->
             <div style="margin-bottom: 25px;">
                 <div style="color:var(--neon-green); border-left:3px solid var(--neon-green); padding-left:8px; font-size:0.9rem; margin-bottom:10px;">AGENT RANKING</div>
                 <table class="cyber-table">
@@ -465,29 +519,30 @@
                     <tbody id="statsBody"></tbody>
                 </table>
             </div>
-            <!-- Section 2: Heatmap -->
             <div style="margin-bottom: 25px;">
                 <div style="color:var(--neon-green); border-left:3px solid var(--neon-green); padding-left:8px; font-size:0.9rem; margin-bottom:10px;">SYNERGY HEATMAP</div>
                 <div class="heatmap-wrapper">
                     <div id="heatmapContainer" class="heatmap-container"></div>
                 </div>
             </div>
-            <!-- Section 3: Logs -->
             <div>
                 <div style="color:var(--neon-blue); border-left:3px solid var(--neon-blue); padding-left:8px; font-size:0.9rem; margin-bottom:10px;">SYSTEM LOGS</div>
                 <div id="logContainer" class="log-container"></div>
             </div>
-            <button class="mobile-close-btn" onclick="closeStats()" style="display:block; width:100%; padding:15px; background:#222; border:1px solid #444; color:#fff; margin-top:30px; font-family:'Orbitron'">关闭页面 / CLOSE</button>
         </div>
     </div>
 
     <header>
-        <div class="logo">CYBER v8.0</div>
+        <div class="logo">CYBER v9.0</div>
         <div class="header-btns">
-            <button class="icon-only-btn" onclick="SFX.play('click'); openSettings()">
+            <!-- New Sync Button -->
+            <button class="icon-only-btn" id="syncBtn" onclick="SFX.play('click'); openSync()">
+                <i class="fas fa-wifi"></i>
+            </button>
+            <button class="icon-only-btn settings-btn-hook" onclick="SFX.play('click'); openSettings()">
                 <i class="fas fa-cog"></i>
             </button>
-            <button class="header-action-btn" onclick="tryResetSeason()">RESET</button>
+            <button class="header-action-btn reset-btn-hook" onclick="tryResetSeason()">RESET</button>
             <button class="icon-only-btn" onclick="SFX.play('click'); openStats()">
                 <i class="fas fa-chart-pie"></i>
             </button>
@@ -521,7 +576,7 @@
     </div>
 
     <script>
-        // --- 1. Sound Engine (Enhanced v8.0) ---
+        // --- 1. Sound Engine ---
         const SFX = {
             ctx: null,
             init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -541,31 +596,26 @@
                     osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.linearRampToValueAtTime(880, now + 0.2);
                     gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.2);
                     osc.start(now); osc.stop(now + 0.2);
-                } else if (type === 'alert') { // Standard alert/modal open
+                } else if (type === 'alert') {
                     osc.type = 'square'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(150, now + 0.1);
                     gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.15);
                     osc.start(now); osc.stop(now + 0.15);
                 } else if (type === 'shuffle') {
-                    // Slot machine style: rapid beeps
                     for(let i=0; i<4; i++){
                         const t = now + (i * 0.1);
-                        const o = this.ctx.createOscillator();
-                        const g = this.ctx.createGain();
+                        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
                         o.connect(g); g.connect(this.ctx.destination);
                         o.frequency.setValueAtTime(800 + (i*100), t);
                         g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.01, t+0.05);
                         o.start(t); o.stop(t+0.08);
                     }
-                    // Final confirm ding
                     const tEnd = now + 0.4;
                     osc.type='triangle'; osc.frequency.setValueAtTime(1200, tEnd);
                     gain.gain.setValueAtTime(0.1, tEnd); gain.gain.linearRampToValueAtTime(0, tEnd+0.3);
                     osc.start(tEnd); osc.stop(tEnd+0.3);
-                    return; // Main osc used for ding
+                    return;
                 } else if (type === 'glitch') {
-                    // Delete sound
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now);
-                    osc.frequency.linearRampToValueAtTime(50, now+0.1);
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.linearRampToValueAtTime(50, now+0.1);
                     gain.gain.setValueAtTime(0.08, now); gain.gain.linearRampToValueAtTime(0, now+0.1);
                     osc.start(now); osc.stop(now+0.1);
                 }
@@ -573,7 +623,7 @@
         };
 
         // --- 2. Data State ---
-        let config = { currentTier: 'base', extraScore: 1, baseScore: 10, foulScore: 2, colorMode: 'tactical', appTitle: 'CYBER v8.0' };
+        let config = { currentTier: 'base', extraScore: 1, baseScore: 10, foulScore: 2, colorMode: 'tactical', appTitle: 'CYBER v9.0' };
         let rivalIds = [];
         let teamHistory = {}; 
         let players = [];
@@ -598,7 +648,6 @@
                     if(typeof p.isResting === 'undefined') p.isResting = false;
                     if(typeof p.fouls === 'undefined') p.fouls = 0;
                     if(typeof p.restCount === 'undefined') p.restCount = 0;
-                    delete p.isLocked; 
                 });
             }
         }
@@ -615,10 +664,11 @@
         const extraValEl = document.getElementById('extraVal');
 
         function render(animationOnly = false) {
-            // Apply Color Theme
+            if (SyncEngine.isClient) document.body.classList.add('is-client');
+            else document.body.classList.remove('is-client');
+
             document.body.classList.toggle('theme-contrast', config.colorMode === 'contrast');
-            // Apply Title
-            document.querySelector('.logo').textContent = config.appTitle || 'CYBER v8.0';
+            document.querySelector('.logo').textContent = config.appTitle || 'CYBER v9.0';
 
             if(!animationOnly) listEl.innerHTML = '';
             
@@ -662,12 +712,12 @@
                                     </div>
                                 </div>
                                 <div class="p-info">
-                                    <input type="text" class="p-name-input" value="${p.name}" onchange="updateName(${p.id}, this.value)">
+                                    <input type="text" class="p-name-input" value="${p.name}" onchange="updateName(${p.id}, this.value)" ${SyncEngine.isClient?'disabled':''}>
                                     <div class="team-tag">${p.team === 'Rest' ? (p.isResting ? 'OFFLINE' : 'REST') : 'TEAM ' + p.team}</div>
                                 </div>
                             </div>
 
-                            <div class="score-absolute" onclick="openEditModal(${p.id})">
+                            <div class="score-absolute" onclick="!SyncEngine.isClient && openEditModal(${p.id})">
                                 ${maxScore > 0 && p.score === maxScore ? '<i class="fas fa-crown" style="color:var(--neon-gold); font-size:0.7rem; position:absolute; top:-10px;"></i>' : ''}
                                 <div class="${scoreClass}" id="score-text-${p.id}">${p.score}</div>
                             </div>
@@ -679,15 +729,7 @@
                 } else {
                     const scoreEl = document.getElementById(`score-text-${p.id}`);
                     if(scoreEl) {
-                         if(!scoreEl.classList.contains('score-pulse')) {
-                            scoreEl.className = scoreClass; 
-                         } else {
-                             scoreEl.className = scoreClass + ' score-pulse';
-                         }
-                    }
-                    if(p.restCount > 0) {
-                        let badge = document.getElementById(`rest-badge-${p.id}`);
-                        if(badge) badge.textContent = p.restCount;
+                         scoreEl.className = scoreClass + (scoreEl.classList.contains('score-pulse') ? ' score-pulse' : '');
                     }
                 }
             });
@@ -697,36 +739,27 @@
         function animateScoreChange(p, newVal, delta) {
             const scoreEl = document.getElementById(`score-text-${p.id}`);
             if(!scoreEl) return;
-
-            // 1. Float Crit Animation (Left Side)
             const floatEl = document.createElement('div');
             floatEl.className = 'float-anim';
             const displayDelta = Number.isInteger(delta) ? delta : delta.toFixed(1);
             floatEl.textContent = delta > 0 ? `+${displayDelta}` : displayDelta;
-            
             const isContrast = config.colorMode === 'contrast';
             let glowColor;
             if(delta > 0) glowColor = isContrast ? 'var(--neon-green)' : 'var(--neon-blue)';
             else glowColor = isContrast ? 'var(--neon-red)' : '#ffaa00';
-
             floatEl.style.color = glowColor;
             floatEl.style.textShadow = `0 0 15px ${glowColor}`;
             scoreEl.parentNode.appendChild(floatEl);
-            
             setTimeout(() => floatEl.remove(), 2000);
-
-            // 2. Pulse
             scoreEl.classList.remove('score-pulse');
             void scoreEl.offsetWidth; 
             scoreEl.classList.add('score-pulse');
             setTimeout(() => scoreEl.classList.remove('score-pulse'), 350);
-
-            // 3. Rolling Numbers
+            
             const startVal = parseInt(scoreEl.textContent, 10) || 0;
             const endVal = newVal;
             const duration = 1000;
             let startTime = null;
-
             function step(timestamp) {
                 if (!startTime) startTime = timestamp;
                 const progress = Math.min((timestamp - startTime) / duration, 1);
@@ -743,29 +776,21 @@
 
         // --- Logic ---
         function handleWin(winningTeam) {
-            if(winningTeam === 'Rest') return;
+            if(winningTeam === 'Rest' || SyncEngine.isClient) return;
             SFX.play('win');
-            
             const val = getTierValue(config.currentTier) + config.extraScore;
             const losingTeam = winningTeam === 'A' ? 'B' : 'A';
             const winnerNames = players.filter(p => p.team === winningTeam).map(p => p.name).join(', ');
             logAction(`${winnerNames} 胜 (+${val})`);
-
             players.forEach(p => {
                 if (p.team === winningTeam) {
-                    p.matches = (p.matches || 0) + 1;
-                    p.wins = (p.wins || 0) + 1;
-                    p.score += val;
+                    p.matches = (p.matches || 0) + 1; p.wins = (p.wins || 0) + 1; p.score += val;
                     animateScoreChange(p, p.score, val);
                 } else if (p.team === losingTeam) {
-                    p.matches = (p.matches || 0) + 1;
-                    p.score -= val;
+                    p.matches = (p.matches || 0) + 1; p.score -= val;
                     animateScoreChange(p, p.score, -val);
-                } else {
-                    p.restCount = (p.restCount || 0) + 1;
-                }
+                } else { p.restCount = (p.restCount || 0) + 1; }
             });
-            
             recordPairs(players.filter(p => p.team === 'A'));
             recordPairs(players.filter(p => p.team === 'B'));
             players.forEach(p => { if(Math.abs(p.score % 1) < 0.01) p.score = Math.round(p.score); });
@@ -774,42 +799,36 @@
         }
 
         function handleFoul(pid) {
+            if(SyncEngine.isClient) return;
             const p = players.find(p => p.id === pid);
             if(!p || p.team === 'Rest') return;
             SFX.play('alert');
             p.fouls = (p.fouls || 0) + 1;
             const foulSpan = document.getElementById(`foul-count-${p.id}`);
             if(foulSpan) foulSpan.textContent = `(${p.fouls})`;
-
             const penalty = config.foulScore;
             logAction(`${p.name} 犯规 (-${penalty})`);
             const opponentTeam = p.team === 'A' ? 'B' : 'A';
             const opponents = players.filter(op => op.team === opponentTeam);
-
             p.score -= penalty;
             animateScoreChange(p, p.score, -penalty);
-
             if(opponents.length > 0) {
                 const bonus = penalty / opponents.length;
-                opponents.forEach(op => {
-                    op.score += bonus;
-                    animateScoreChange(op, op.score, bonus);
-                });
+                opponents.forEach(op => { op.score += bonus; animateScoreChange(op, op.score, bonus); });
             }
-             players.forEach(p => { if(Math.abs(p.score % 1) < 0.01) p.score = Math.round(p.score); });
-             saveData();
+            players.forEach(p => { if(Math.abs(p.score % 1) < 0.01) p.score = Math.round(p.score); });
+            saveData();
         }
 
         function triggerRandomize() {
+            if(SyncEngine.isClient) return;
             SFX.play('shuffle'); 
             const loader = document.getElementById('loaderOverlay');
+            document.getElementById('loaderText').dataset.text = "RE-GROUPING...";
             loader.style.display = 'flex';
             setTimeout(() => { 
-                executeRandomize(); 
-                loader.style.display = 'none'; 
-                render(); 
-                saveData(); 
-            }, 450); // Matched with SFX
+                executeRandomize(); loader.style.display = 'none'; render(); saveData(); 
+            }, 450);
         }
 
         function executeRandomize() {
@@ -829,15 +848,12 @@
                     const p1 = activePool.find(p=>p.id===rivalIds[0]);
                     const p2 = activePool.find(p=>p.id===rivalIds[1]);
                     if(p1 && p2) {
-                         const idx1 = activePool.indexOf(p1); 
-                         const idx2 = activePool.indexOf(p2);
+                         const idx1 = activePool.indexOf(p1); const idx2 = activePool.indexOf(p2);
                          const getTeam = (idx) => idx < 2 ? 'A' : (idx < 4 ? 'B' : 'Rest');
                          const t1 = getTeam(idx1); const t2 = getTeam(idx2);
                          if(t1 !== 'Rest' && t1 === t2) {
                              const targetIdx = t1 === 'A' ? 2 : 0;
-                             if(activePool[targetIdx]) {
-                                 activePool[idx2] = activePool[targetIdx]; activePool[targetIdx] = p2;
-                             }
+                             if(activePool[targetIdx]) { activePool[idx2] = activePool[targetIdx]; activePool[targetIdx] = p2; }
                          }
                     }
                 }
@@ -848,8 +864,8 @@
             }
         }
 
-        // --- Unified Modal Logic v8.0 ---
         function requestConfirm(type, arg) {
+            if(SyncEngine.isClient) return;
             SFX.play('alert');
             pendingAction = { type, arg };
             const modal = document.getElementById('confirmModal');
@@ -857,34 +873,24 @@
             const title = document.getElementById('confirmTitle');
             const detail = document.getElementById('confirmDetail');
             const execBtn = document.getElementById('confirmExecBtn');
-            
             modal.style.display = 'flex';
-            execBtn.style.color = ''; execBtn.style.borderColor = ''; // Reset
-
+            execBtn.style.color = ''; execBtn.style.borderColor = '';
             if (type === 'win') {
                 const val = getTierValue(config.currentTier) + config.extraScore;
-                panel.className = 'confirm-panel c-win';
-                title.textContent = 'VICTORY CONFIRMATION';
+                panel.className = 'confirm-panel c-win'; title.textContent = 'VICTORY CONFIRMATION';
                 detail.textContent = `${arg}队 胜 +${val}`;
-                execBtn.style.color = 'var(--neon-blue)';
-                execBtn.style.borderColor = 'var(--neon-blue)';
+                execBtn.style.color = 'var(--neon-blue)'; execBtn.style.borderColor = 'var(--neon-blue)';
             } else if (type === 'foul') {
                 const p = players.find(p => p.id === arg);
-                panel.className = 'confirm-panel c-foul';
-                title.textContent = 'FOUL DETECTED';
-                detail.textContent = `${p.name} 犯规 -${config.foulScore}`;
-                execBtn.className = 'cyber-btn danger';
+                panel.className = 'confirm-panel c-foul'; title.textContent = 'FOUL DETECTED';
+                detail.textContent = `${p.name} 犯规 -${config.foulScore}`; execBtn.className = 'cyber-btn danger';
             } else if (type === 'reset') {
-                panel.className = 'confirm-panel c-warn';
-                title.textContent = 'DANGER ZONE';
-                detail.textContent = '重置所有数据?';
-                execBtn.className = 'cyber-btn danger';
+                panel.className = 'confirm-panel c-warn'; title.textContent = 'DANGER ZONE';
+                detail.textContent = '重置所有数据?'; execBtn.className = 'cyber-btn danger';
             } else if (type === 'delete') {
                 const p = players.find(p => p.id === arg);
-                panel.className = 'confirm-panel c-warn';
-                title.textContent = 'REMOVE AGENT';
-                detail.textContent = `删除 ${p.name}?`;
-                execBtn.className = 'cyber-btn danger';
+                panel.className = 'confirm-panel c-warn'; title.textContent = 'REMOVE AGENT';
+                detail.textContent = `删除 ${p.name}?`; execBtn.className = 'cyber-btn danger';
             }
         }
 
@@ -892,14 +898,12 @@
         
         function executePendingAction() {
             if (!pendingAction) return;
-            const { type, arg } = pendingAction;
-            closeConfirmModal();
+            const { type, arg } = pendingAction; closeConfirmModal();
             if (type === 'win') handleWin(arg);
             if (type === 'foul') handleFoul(arg);
             if (type === 'reset') {
                 players.forEach(p => { p.score=0; p.team='Rest'; p.wins=0; p.matches=0; p.fouls=0; p.restCount=0; }); 
-                teamHistory={}; actionLogs=[]; render(); saveData(); 
-                SFX.play('glitch'); // Sound fx
+                teamHistory={}; actionLogs=[]; render(); saveData(); SFX.play('glitch');
             }
             if (type === 'delete') {
                 SFX.play('glitch');
@@ -907,11 +911,9 @@
             }
         }
 
-        // Replaced native confirms
         function tryResetSeason() { requestConfirm('reset'); }
         function tryDeletePlayer(id) { requestConfirm('delete', id); }
 
-        // Edit Score
         let currentEditId = null;
         function openEditModal(id) { currentEditId = id; document.getElementById('manualScoreInput').value = players.find(p=>p.id===id).score; document.getElementById('editModal').style.display = 'flex'; }
         function closeEditModal() { document.getElementById('editModal').style.display = 'none'; currentEditId = null; }
@@ -925,7 +927,6 @@
             closeEditModal(); 
         }
 
-        // Settings Logic
         function openSettings() {
             document.getElementById('settingBaseInput').value = config.baseScore || 10;
             document.getElementById('settingFoulInput').value = config.foulScore || 2;
@@ -941,10 +942,8 @@
             const title = document.getElementById('settingTitleInput').value;
             if(b > 0) config.baseScore = b;
             if(f >= 0) config.foulScore = f;
-            config.colorMode = t;
-            config.appTitle = title;
-            saveData(); render(); 
-            closeSettings();
+            config.colorMode = t; config.appTitle = title;
+            saveData(); render(); closeSettings();
         }
         
         function updateFooterUI() {
@@ -958,12 +957,12 @@
             document.getElementById('lbl-bomb').textContent = getTierValue('bomb');
         }
         
-        function setTier(t) { SFX.play('click'); config.currentTier = t; saveData(); render(); }
-        function adjustExtra(v) { SFX.play('click'); config.extraScore += v; saveData(); render(); }
-        function toggleRest(id) { SFX.play('click'); const p = players.find(p=>p.id===id); p.isResting = !p.isResting; if(p.isResting) p.team = 'Rest'; render(); saveData(); }
-        function toggleRival(id) { SFX.play('click'); if(rivalIds.includes(id)) rivalIds=rivalIds.filter(i=>i!==id); else {if(rivalIds.length>=2)rivalIds.shift(); rivalIds.push(id);} render(); saveData(); }
-        function updateName(id, val) { players.find(p=>p.id===id).name = val; saveData(); }
-        function addPlayer() { players.push({ id: Date.now(), name: `P${players.length+1}`, team: "Rest", score: 0, isResting: false, wins: 0, matches: 0, fouls: 0, restCount: 0 }); render(); saveData(); }
+        function setTier(t) { if(SyncEngine.isClient) return; SFX.play('click'); config.currentTier = t; saveData(); render(); }
+        function adjustExtra(v) { if(SyncEngine.isClient) return; SFX.play('click'); config.extraScore += v; saveData(); render(); }
+        function toggleRest(id) { if(SyncEngine.isClient) return; SFX.play('click'); const p = players.find(p=>p.id===id); p.isResting = !p.isResting; if(p.isResting) p.team = 'Rest'; render(); saveData(); }
+        function toggleRival(id) { if(SyncEngine.isClient) return; SFX.play('click'); if(rivalIds.includes(id)) rivalIds=rivalIds.filter(i=>i!==id); else {if(rivalIds.length>=2)rivalIds.shift(); rivalIds.push(id);} render(); saveData(); }
+        function updateName(id, val) { if(SyncEngine.isClient) return; players.find(p=>p.id===id).name = val; saveData(); }
+        function addPlayer() { if(SyncEngine.isClient) return; players.push({ id: Date.now(), name: `P${players.length+1}`, team: "Rest", score: 0, isResting: false, wins: 0, matches: 0, fouls: 0, restCount: 0 }); render(); saveData(); }
         
         function recordPairs(teamArr) {
             if(teamArr.length < 2) return;
@@ -978,14 +977,12 @@
         function showHeatmapDetail(n1, n2, count) { if(count) alert(`${n1} & ${n2}\n累计组队: ${count} 次`); }
         function openStats() {
             document.getElementById('statsModal').style.display = 'flex';
-            const tbody = document.getElementById('statsBody');
-            tbody.innerHTML = '';
+            const tbody = document.getElementById('statsBody'); tbody.innerHTML = '';
             [...players].sort((a,b) => (b.matches?b.wins/b.matches:0) - (a.matches?a.wins/a.matches:0)).forEach(p => {
                 const rate = p.matches > 0 ? Math.round((p.wins / p.matches) * 100) : 0;
                 tbody.insertAdjacentHTML('beforeend', `<tr><td>${p.name.substring(0,6)}</td><td>${p.wins}/${p.matches} <span style="color:#888; font-size:0.7em">(${rate}%)</span></td><td>${p.score}</td><td style="color:var(--neon-orange)">${p.restCount}</td></tr>`);
             });
-            const container = document.getElementById('heatmapContainer');
-            container.innerHTML = '';
+            const container = document.getElementById('heatmapContainer'); container.innerHTML = '';
             let headRow = `<div class="heatmap-row"><div class="heatmap-cell heatmap-head" style="position:sticky; left:0; z-index:20;">AGNT</div>`;
             players.forEach(p => { headRow += `<div class="heatmap-cell heatmap-head">${p.name.substring(0,3).toUpperCase()}</div>`; });
             headRow += '</div>';
@@ -1003,29 +1000,162 @@
                 row+='</div>';
                 container.insertAdjacentHTML('beforeend', row);
             });
-            const logDiv = document.getElementById('logContainer');
-            logDiv.innerHTML = '';
+            const logDiv = document.getElementById('logContainer'); logDiv.innerHTML = '';
             actionLogs.forEach(log => { logDiv.insertAdjacentHTML('beforeend', `<div class="log-entry"><span class="log-time">${log.t}</span> <span>${log.m}</span></div>`); });
         }
         function closeStats() { document.getElementById('statsModal').style.display = 'none'; }
 
-        function saveData() { localStorage.setItem('cv8_0_data', JSON.stringify({p:players, c:config, r:rivalIds, h:teamHistory, l:actionLogs})); }
+        function saveData() { 
+            if (SyncEngine.isClient) return; 
+            localStorage.setItem('cv9_data', JSON.stringify({p:players, c:config, r:rivalIds, h:teamHistory, l:actionLogs})); 
+            SyncEngine.broadcast(); 
+        }
         function loadData() {
-            const d = JSON.parse(localStorage.getItem('cv8_0_data'));
+            const d = JSON.parse(localStorage.getItem('cv9_data'));
             if(d) { 
                 players=d.p; config=d.c; rivalIds=d.r; teamHistory=d.h; actionLogs=d.l||[]; 
                 if(!config.baseScore) config.baseScore = 10; 
                 if(!config.colorMode) config.colorMode = 'tactical';
                 initDefaultPlayers(); 
-            } 
-            else { initDefaultPlayers(); }
+            } else { initDefaultPlayers(); }
         }
+
+        // --- 5. SYNC ENGINE (PeerJS) ---
+        const SyncEngine = {
+            peer: null,
+            conn: null, 
+            connections: [], 
+            isHost: false,
+            isClient: false,
+            myId: null,
+
+            init: function() {
+                this.myId = 'CYBER-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+            },
+
+            openModal: function() { document.getElementById('syncModal').style.display = 'flex'; },
+            closeModal: function() { document.getElementById('syncModal').style.display = 'none'; },
+
+            hostGame: function() {
+                this.init();
+                document.getElementById('btnCreateRoom').textContent = "正在建立... / INIT...";
+                this.peer = new Peer(this.myId);
+                
+                this.peer.on('open', (id) => {
+                    this.isHost = true;
+                    this.isClient = false;
+                    const cleanId = id.split('-')[1];
+                    document.getElementById('myRoomId').textContent = cleanId;
+                    document.getElementById('hostDisplay').style.display = 'block';
+                    document.getElementById('btnCreateRoom').style.display = 'none';
+                    document.getElementById('clientSection').style.opacity = '0.3';
+                    document.getElementById('clientSection').style.pointerEvents = 'none';
+                    document.getElementById('syncBtn').classList.add('sync-active');
+                    
+                    // Generate QR with Current URL Parameter
+                    document.getElementById('qrCodeContainer').innerHTML = '';
+                    
+                    // IMPORTANT: We construct the join URL
+                    // Removes existing params and adds ?join=CODE
+                    const baseUrl = window.location.href.split('?')[0];
+                    const joinUrl = `${baseUrl}?join=${cleanId}`;
+                    
+                    new QRCode(document.getElementById("qrCodeContainer"), {
+                        text: joinUrl,
+                        width: 128, height: 128,
+                        correctLevel : QRCode.CorrectLevel.L
+                    });
+
+                    document.getElementById('syncStatus').textContent = "HOST ONLINE. WAITING...";
+                });
+
+                this.peer.on('connection', (conn) => {
+                    this.connections.push(conn);
+                    SFX.play('alert');
+                    document.getElementById('syncStatus').textContent = `CLIENT CONNECTED! (${this.connections.length})`;
+                    setTimeout(() => this.broadcast(), 500);
+                });
+                
+                this.peer.on('error', (err) => {
+                    alert('Sync Error: ' + err.type);
+                });
+            },
+
+            joinGame: function(autoCode) {
+                const inputId = autoCode || document.getElementById('joinInput').value.trim().toUpperCase();
+                if(!inputId) return;
+                
+                // Show loader immediately
+                document.getElementById('loaderOverlay').style.display = 'flex';
+                document.getElementById('loaderText').dataset.text = "CONNECTING...";
+                
+                this.myId = 'CLIENT-' + Math.random().toString(36).substr(2, 5);
+                this.peer = new Peer(this.myId);
+
+                this.peer.on('open', () => {
+                    const hostPeerId = 'CYBER-' + inputId;
+                    this.conn = this.peer.connect(hostPeerId);
+
+                    this.conn.on('open', () => {
+                        this.isClient = true;
+                        this.isHost = false;
+                        document.getElementById('loaderOverlay').style.display = 'none';
+                        this.closeModal();
+                        document.getElementById('syncBtn').classList.add('sync-active');
+                        SFX.play('win'); 
+                        
+                        render();
+                    });
+
+                    this.conn.on('data', (data) => {
+                        players = data.p;
+                        config = data.c;
+                        rivalIds = data.r;
+                        teamHistory = data.h;
+                        actionLogs = data.l;
+                        render(); 
+                    });
+
+                    this.conn.on('close', () => {
+                        alert("Host disconnected.");
+                        location.reload();
+                    });
+                });
+                
+                this.peer.on('error', (err) => {
+                    document.getElementById('loaderOverlay').style.display = 'none';
+                    alert("连接失败，请检查代码或网络。\nHost ID: " + inputId);
+                });
+            },
+
+            broadcast: function() {
+                if(!this.isHost) return;
+                const payload = { p: players, c: config, r: rivalIds, h: teamHistory, l: actionLogs };
+                this.connections.forEach(conn => {
+                    if(conn.open) conn.send(payload);
+                });
+            }
+        };
+
+        function openSync() { SyncEngine.openModal(); }
+        function closeSync() { SyncEngine.closeModal(); }
 
         loadData();
         render();
+
+        // --- Auto Join Logic on Load ---
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const joinCode = urlParams.get('join');
+            if(joinCode) {
+                // Auto open modal and trigger join
+                console.log("Auto joining room:", joinCode);
+                SyncEngine.joinGame(joinCode);
+            }
+        };
+
         document.body.addEventListener('click', function initAudio() { SFX.init(); document.body.removeEventListener('click', initAudio); }, { once: true });
 
     </script>
 </body>
 </html>
-
